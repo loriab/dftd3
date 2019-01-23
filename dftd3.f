@@ -255,7 +255,13 @@ c     call loadc6(btmp,maxc,max_elem,c6ab,mxc)
 c get coord filename
       call getarg(1,etmp)
       inquire(file=etmp,exist=ex)
-      if(.not.ex) call printoptions       
+      if(.not.ex) then
+        if(index(etmp,'-version').ne.0) then
+          call printversion
+        else
+          call printoptions
+        endif
+      endif
       ex=.false.
       ipot=0
 c options
@@ -404,9 +410,9 @@ c set parameters for functionals
       if(echo)then
       write(*,*)' _________________________________'
       write(*,*)'                                  '
-      write(*,*)'|         DFTD3 V3.1 Rev 1        |'
+      write(*,*)'|         DFTD3 V3.2 Rev 1        |'
       write(*,*)'| S.Grimme, University Bonn       |'
-      write(*,*)'|         October  2015           |'
+      write(*,*)'|         January  2019           |'
       write(*,*)'|   see dftd3 -h for options      |'
       write(*,*)' _________________________________'
       write(*,*)
@@ -890,6 +896,11 @@ c test test tesc test test tesc test test tesc test test tesc test test
       end Program
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      subroutine printversion
+      write(*,*) '3.2.1'
+      stop
+      end subroutine printversion
 
       subroutine printoptions
       write(*,*) 'dftd3 <coord filename> [-options]'

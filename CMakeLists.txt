@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 
 project(dftd3
-        VERSION 3.2.0
+        VERSION 3.2.1
         LANGUAGES Fortran)
 set(dftd3_AUTHORS      "Stefan Grimme")
 set(dftd3_DESCRIPTION  "dispersion correction for DFT, Hartree–Fock, and semi-empirical quantum chemical methods")
