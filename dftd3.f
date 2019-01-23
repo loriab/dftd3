@@ -52,6 +52,7 @@ c lattice in au
       real*8 lat(3,3)
 c gradient
       real*8,dimension(:,:), allocatable :: g      
+      real*8,dimension(:,:), allocatable :: gabc
       real*8 g_lat(3,3)
 c cardinal numbers of elements
       integer,dimension(:), allocatable :: iz  
@@ -365,6 +366,7 @@ c this is alternative to loadc6
 !      allocations
       allocate(xyz(3,n))
       allocate(g(3,n))
+      allocate(gabc(3,n))
       allocate(iz(n))
       allocate(cn(n))
 
@@ -702,7 +704,8 @@ c output
       write(*,'('' E8    /kcal :'',f11.4)')-e8*autokcal 
 c     write(*,'('' E10   /kcal :'',f11.4)')-e10*autokcal 
       if(.not.noabc)
-     .write(*,'('' E6(ABC) "   :'',2f11.6,F16.12)')-e6abc*autokcal 
+     .write(*,'('' E6(ABC) /kcal,au:'',f11.6,F16.12)')-e6abc*autokcal,
+     .-e6abc
       write(*,'('' % E8        :'',f6.2)') -e8/disp/0.01         
       if(.not.noabc)
      .write(*,'('' % E6(ABC)   :'',f6.2)') -e6abc/disp/0.01        
@@ -738,6 +741,7 @@ c gradient
 cccccccccccccccccccccccccc
       if(grad)then
       g=0.0d0
+      gabc=0.0d0
       call cpu_time(dum1)
       if (pbc) then
       call pbcgdisp(max_elem,maxc,n,xyz,iz,c6ab,mxc,r2r4,r0ab,
@@ -748,7 +752,7 @@ cccccccccccccccccccccccccc
       else
         call gdisp(max_elem,maxc,n,xyz,iz,c6ab,mxc,r2r4,r0ab,rcov,
      .           s6,s18,rs6,rs8,rs10,alp6,alp8,alp10,noabc,rthr,
-     .           numgrad,version,echo,g,gdsp,x,rthr2,fix)
+     .           numgrad,version,echo,g,gdsp,x,rthr2,fix,gabc)
       endif
       call cpu_time(dum2)
       if(echo)write(*,'(''gdisp time  '',f6.1)')dum2-dum1
@@ -778,6 +782,13 @@ c write to energy and gradient files in TM style
         endif !echo
         call outg(n,g,'dftd3_gradient')
 !        call wregrad(n,xyz,iz,disp,g)
+
+        if(.not.noabc) then
+          if (echo) then
+            write(*,*) 'ABC gradient written to file dftd3_abc_gradient'
+          endif !echo
+          call outg(n,gabc,'dftd3_abc_gradient')
+        endif !abc
 
       endif !pbc
       endif !grad
@@ -1980,7 +1991,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       subroutine gdisp(max_elem,maxc,n,xyz,iz,c6ab,mxc,r2r4,r0ab,rcov,
      .                 s6,s18,rs6,rs8,rs10,alp6,alp8,alp10,noabc,rthr,
-     .                 num,version,echo,g,disp,gnorm,cn_thr,fix)
+     .                 num,version,echo,g,disp,gnorm,cn_thr,fix,gabc)
       implicit none  
       include  'param'
 
@@ -1988,6 +1999,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       real*8 xyz(3,*),r0ab(max_elem,max_elem),r2r4(*)
       real*8 c6ab(max_elem,max_elem,maxc,maxc,3)
       real*8 g(3,*),s6,s18,rcov(max_elem)
+      real*8 gabc(3,*)
       real*8 rs6,rs8,rs10,alp10,alp8,alp6,a1,a2        
       logical noabc,num,echo,fix(n)
  
@@ -2013,6 +2025,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       integer  linij,linik,linjk
       real*8 vec(3),vec2(3)
       real*8 dc6i(n)       ! dE_disp/dCN(iat) in dc6i(iat)
+      real*8 dc6i_noabc(n),drij_noabc(n*(n+1)/2),x1_noabc,gtmp_noabc(3)
       real*8 dc6ij(n,n)    ! saves dC6(ij)/dCN(iat)
       real*8 dc6iji,dc6ijj
       logical abccalc(n*(n+1)/2)                        
@@ -2291,6 +2304,14 @@ c use BJ radius
 
       if(.not.noabc)then
 
+      do iat=1,n
+        do jat=1,iat-1
+          linij=lin(iat,jat)
+          drij_noabc(linij) = drij(linij)
+        enddo
+        dc6i_noabc(iat) = dc6i(iat)
+      enddo
+
       if(echo)write(*,*) 'doing analytical gradient O(N^3) ...'
         do iat=1,n
           do jat=1,iat-1
@@ -2388,6 +2409,7 @@ c use BJ radius
 ! the grad w.r.t. the coordinates is calculated dE/dr_ij * dr_ij/dxyz_i       
       do iat=2,n
         gtmp=0.0
+        gtmp_noabc=0.0
         do jat=1,iat-1
           linij=lin(iat,jat)
           rij=xyz(:,jat)-xyz(:,iat)
@@ -2408,11 +2430,20 @@ c use BJ radius
           gtmp=gtmp+x1*rij/r
           !g(:,iat)=g(:,iat)+x1*rij/r
           g(:,jat)=g(:,jat)-x1*rij/r
+
+          x1_noabc=drij_noabc(linij)+dcn*
+     .             (dc6i_noabc(iat)+dc6i_noabc(jat))
+          gtmp_noabc=gtmp_noabc+x1_noabc*rij/r
+          gabc(:,jat)=gabc(:,jat)-x1_noabc*rij/r
          
         enddo !iat
         g(:,iat)=g(:,iat)+gtmp
+        gabc(:,iat)=gabc(:,iat)+gtmp_noabc
       enddo !jat
 
+      do iat=1,n
+        gabc(:,iat) = g(:,iat) - gabc(:,iat)
+      enddo !iat
 
 
  999  continue
@@ -2424,6 +2455,7 @@ c use BJ radius
 
       do i=1,n                 !fixed atoms have no gradient
        if(fix(i))g(:,i)=0.0
+       if(fix(i))gabc(:,i)=0.0
       enddo
 
        
