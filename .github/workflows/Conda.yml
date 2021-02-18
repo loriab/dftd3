@@ -81,6 +81,19 @@ jobs:
         sudo apt-get -qqq update
         sudo apt-get install -y  intel-oneapi-compiler-fortran intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-runtime-libs
 
+    - name: Create Environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: test
+        environment-file: devtools/conda-envs/base-cf.yaml
+        python-version: ${{ matrix.cfg.python-version }}
+        auto-activate-base: false
+
+    - name: Environment Information
+      run: |
+        conda info
+        conda list --show-channel-urls
+
     - name: Configure with CMake (Intel + MKL)
       run: |
         source /opt/intel/oneapi/setvars.sh
@@ -114,6 +127,19 @@ jobs:
     - name: install
       if: steps.cache-install.outputs.cache-hit != 'true'
       run: devtools/oneapi/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
+
+    - name: Create Environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: test
+        environment-file: devtools/conda-envs/base-cf.yaml
+        python-version: ${{ matrix.cfg.python-version }}
+        auto-activate-base: false
+
+    - name: Environment Information
+      run: |
+        conda info
+        conda list --show-channel-urls
 
     - name: build
       run: devtools/oneapi/build_windows.bat fortran
