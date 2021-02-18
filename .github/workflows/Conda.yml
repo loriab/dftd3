@@ -11,26 +11,49 @@ on:
     branches: [ master ]
 
 env:
+  WINDOWS_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17453/w_BaseKit_p_2021.1.0.2664_offline.exe
+  WINDOWS_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17392/w_HPCKit_p_2021.1.0.2682_offline.exe
   LINUX_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17431/l_BaseKit_p_2021.1.0.2659_offline.sh
   LINUX_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17427/l_HPCKit_p_2021.1.0.2684_offline.sh
+  WINDOWS_FORTRAN_COMPONENTS: intel.oneapi.win.ifort-compiler
   LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
   LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
 
-  build_xopt:
+
+jobs:
+  build:
     # The type of runner that the job will run on
-    runs-on:  ubuntu-20.04
+    runs-on:  [ubuntu-20.04, windows-latest]
     strategy:
       fail-fast: false
       matrix:
-        gcc_v: [ 10 ] # Version of GFortran we want to use.
-        compiler: [gcc, intel] # Version of GFortran we want to use.
+        cfg:
+          - label: linux-gcc
+            gcc_v: 10
+            compiler: gcc
+            runs-on: ubuntu-20.04
+
+          - label: linux-intel
+            gcc_v: 10
+            compiler: intel
+            runs-on: ubuntu-20.04
+
+          - label: win-intel
+            gcc_v: 10
+            compiler: intel
+            runs-on: windows-latest
+
+#        gcc_v: [ 10 ] # Version of GFortran we want to use.
+#        compiler: [gcc, intel] # Version of GFortran we want to use.
     env:
       FC: gfortran-${{ matrix.gcc_v }}
       GCC_V: ${{ matrix.gcc_v }}
 
+    name: "${{ matrix.cfg.label }}"
+    runs-on: ${{ matrix.cfg.runs-on }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -45,6 +68,7 @@ jobs:
         wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
         sudo apt-get -qqq update
         sudo apt-get install -y build-essential cmake
+
     - name: Install Intel OneAPI 
       if: contains( matrix.compiler, 'intel')
       run: |
@@ -53,6 +77,7 @@ jobs:
         sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
         sudo apt-get -qqq update
         sudo apt-get install -y  intel-oneapi-compiler-fortran intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-runtime-libs
+
     - name: Install GFortran and openblas
       if: contains( matrix.compiler, 'gcc')
       run: |
@@ -76,7 +101,7 @@ jobs:
 
     # Runs a single command using the runners shell
     - name: smoke test binary with help
-      if: contains( matrix.compiler, 'gcc')
+      #if: contains( matrix.compiler, 'gcc')
       run: |
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h 
