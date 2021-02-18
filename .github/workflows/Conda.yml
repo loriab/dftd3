@@ -20,60 +20,27 @@ env:
   LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
 
 jobs:
-  build:
+  build_linux_gcc:
+    runs-on: ubuntu-20.04
+    name: GCC 10
     strategy:
       fail-fast: false
-      matrix:
-        cfg:
-          - label: linux-gcc
-            gcc_v: 10
-            compiler: gcc
-            runs-on: ubuntu-20.04
-
-          - label: linux-intel
-            gcc_v: 10
-            compiler: intel
-            runs-on: ubuntu-20.04
-
-          - label: win-intel
-            gcc_v: 10
-            compiler: intel
-            runs-on: windows-latest
-
-#        gcc_v: [ 10 ] # Version of GFortran we want to use.
-#        compiler: [gcc, intel] # Version of GFortran we want to use.
     env:
-      FC: gfortran-${{ matrix.gcc_v }}
-      GCC_V: ${{ matrix.gcc_v }}
+      FC: gfortran-10
+      GCC_V: 10
 
-    name: "${{ matrix.cfg.label }}"
-    runs-on: ${{ matrix.cfg.runs-on }}
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
 
-    - name: setup ubuntu build environment
-      if: "(matrix.cfg.label == 'linux-gcc')"
+    - name: Install Ubuntu Build Env
       run: |
         sudo apt-get install -y ca-certificates gnupg man-db pkg-config wget
-        sudo apt-get install apt-transport-https software-properties-common 
+        sudo apt-get install apt-transport-https software-properties-common
         wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
         sudo apt-get -qqq update
         sudo apt-get install -y build-essential cmake
 
-    - name: Install Intel OneAPI 
-      if: "(matrix.cfg.label == 'linux-intel')"
-      run: |
-        sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-        sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
-        sudo apt-get -qqq update
-        sudo apt-get install -y  intel-oneapi-compiler-fortran intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-runtime-libs
-
     - name: Install GFortran and openblas
-      if: contains( matrix.compiler, 'gcc')
       run: |
        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
        sudo apt-get update
@@ -83,36 +50,85 @@ jobs:
        --slave /usr/bingcov gcov /usr/bin/gcov-${GCC_V}
 
     - name: Configure with CMake (GCC + OpenBlas)
-      if: "(matrix.cfg.label == 'linux-gcc')"
       run: |
         cmake -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DGNU=ON -DBLAS=OpenBLAS
-
-    - name: Configure with CMake (Intel + MKL)
-      if: "(matrix.cfg.label == 'linux-intel')"
-      run: |
-        source /opt/intel/oneapi/setvars.sh
-        cmake -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL 
 
     - name: Build and compile
       run: cmake --build objdir --verbose
 
-    # Runs a single command using the runners shell
     - name: smoke test binary with help
-      #if: "(matrix.cfg.label == 'linux-gcc')"
       run: |
         ./objdir/dftd3 -version
-        ./objdir/dftd3 -h 
-    # Runs a single command using the runners shell
-    # - name: smoke test binary with help
-    #   if: contains( matrix.compiler, 'intel')
-    #   run: |
-    #     export API=/opt/intel/oneapi
-    #     source $API/mkl/latest/env/vars.sh
-    #     ./objdir/xopt -h 
+        ./objdir/dftd3 -h
 
-    # Runs a set of commands using the runners shell
-#     - name: Run a multi-line script
-#       run: |
-#         echo Add other actions to build,
-#         echo test, and deploy your project.
+  build_linux_intel:
+    runs-on: ubuntu-20.04
+    name: Intel 10
+    strategy:
+      fail-fast: false
+    env:
+      FC: gfortran-10
+      GCC_V: 10
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Intel OneAPI Linux
+      if: "(matrix.cfg.label == 'linux-intel')"
+      run: |
+        sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+        sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+        sudo apt-get -qqq update
+        sudo apt-get install -y  intel-oneapi-compiler-fortran intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-runtime-libs
+
+    - name: Configure with CMake (Intel + MKL)
+      run: |
+        source /opt/intel/oneapi/setvars.sh
+        cmake -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL
+
+    - name: Build and compile
+      run: cmake --build objdir --verbose
+
+    - name: smoke test binary with help
+      run: |
+        ./objdir/dftd3 -version
+        ./objdir/dftd3 -h
+
+  build_windows_fortran:
+    runs-on: windows-latest
+    name: Intel Win
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: actions/checkout@v2
+    - name: cache install
+      id: cache-install
+      uses: actions/cache@v2
+      with:
+        path: C:\Program Files (x86)\Intel\oneAPI\compiler
+        key: install-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/devtools/oneapi/cache_exclude_windows.sh') }}
+    - name: install
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: devtools/oneapi/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
+    - name: build
+      run: devtools/oneapi/build_windows.bat fortran
+    - name: exclude unused files from cache
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      shell: bash
+      run: devtools/oneapi/cache_exclude_windows.sh
+
+    # Delete the following if you don't want to save install logs
+    - name: Saving install logs
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      uses: actions/upload-artifact@v2
+      with:
+        name: InstallLogs_${{ github.job }}
+        path: |
+          extract.log
+          bootstrapper*
+          installer*
+        retention-days: 7
+
 
