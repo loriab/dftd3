@@ -8,3 +8,5 @@ dependencies:
     # Core
   - cmake
   - ninja
+  - intel::fortran_rt
+  - intel::mkl-devel
