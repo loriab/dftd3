@@ -98,10 +98,23 @@ jobs:
 #        conda info
 #        conda list --show-channel-urls
 
-    - name: Environment Information
-      run: |
-        source /opt/intel/oneapi/setvars.sh intel64
-        which ifort
+#    - name: Environment Information
+#      run: |
+
+
+#    - name: Create Environment
+#      shell: bash
+#      run: |
+#        eval "$(conda shell.bash hook)" && conda activate
+#        python devtools/scripts/create_conda_env.py -n=test -p=$PYVER devtools/conda-envs/$CONDA_ENV.yaml
+#
+#    - name: Install
+#      shell: bash
+#      run: |
+#        eval "$(conda shell.bash hook)" && conda activate test
+#        python -m pip install . --no-deps
+
+
 
     - name: Environment Information
       run: |
@@ -110,11 +123,15 @@ jobs:
         conda list --show-channel-urls
         conda install cmake ninja blas=*=mkl -c conda-forge
         conda list --show-channel-urls
+        source /opt/intel/oneapi/setvars.sh intel64
+        which ifort
         which conda python cmake ninja ifort
 
     - name: Configure with CMake (Intel + MKL)
       run: |
         eval "$(conda shell.bash hook)" && conda activate
+        source /opt/intel/oneapi/setvars.sh intel64
+        which conda python cmake ninja ifort
         cmake -H. -Bobjdir -GNinja -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort
 
     - name: Compile
