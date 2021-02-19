@@ -60,6 +60,7 @@ jobs:
       run: |
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h
+        ldd ./objdir/dftd3
 
   build_linux_intel:
     runs-on: ubuntu-20.04
@@ -97,7 +98,7 @@ jobs:
     - name: Configure with CMake (Intel + MKL)
       run: |
         source /opt/intel/oneapi/setvars.sh
-        cmake -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL
+        cmake -H. -Bobjdir -GNinja -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort
 
     - name: Compile
       run: cmake --build objdir --verbose
@@ -106,6 +107,7 @@ jobs:
       run: |
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h
+        ldd ./objdir/dftd3
 
   build_windows_fortran:
     runs-on: windows-latest

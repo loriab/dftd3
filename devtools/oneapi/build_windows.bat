@@ -38,7 +38,7 @@ set /a RESULT=%RESULT%+%ERRORLEVEL%
 goto exit
 
 :fortran
-cmake -GNinja -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL
+cmake -GNinja -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort
 set RESULT=%ERRORLEVEL%
 cmake --build objdir --verbose
 set RESULT=%ERRORLEVEL%
