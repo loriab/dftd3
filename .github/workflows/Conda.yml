@@ -100,11 +100,15 @@ jobs:
 
     - name: Environment Information
       run: |
-        source /opt/intel/oneapi/setvars.sh
+        source /opt/intel/oneapi/setvars.sh intel64
+
+    - name: Environment Information
+      run: |
         conda info
         conda list --show-channel-urls
         conda install cmake ninja blas=*=mkl -c conda-forge
         conda list --show-channel-urls
+        which conda python cmake ninja ifort
 
     - name: Configure with CMake (Intel + MKL)
       run: |
