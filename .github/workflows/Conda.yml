@@ -15,7 +15,7 @@ env:
   WINDOWS_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17392/w_HPCKit_p_2021.1.0.2682_offline.exe
   LINUX_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17431/l_BaseKit_p_2021.1.0.2659_offline.sh
   LINUX_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17427/l_HPCKit_p_2021.1.0.2684_offline.sh
-  WINDOWS_FORTRAN_COMPONENTS: intel.oneapi.win.ifort-compiler
+  WINDOWS_FORTRAN_COMPONENTS: "intel.oneapi.win.ifort-compiler intel.oneapi.win.mkl.devel intel.oneapi.win.mkl.python3"
   LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
   LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
 
@@ -132,7 +132,15 @@ jobs:
         eval "$(conda shell.bash hook)" && conda activate
         source /opt/intel/oneapi/setvars.sh intel64
         which conda python cmake ninja ifort
-        cmake -H. -Bobjdir -GNinja -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort
+        cmake \
+            -S. \
+            -Bobjdir \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINTEL=ON \
+            -DBLAS=MKL \
+            -DCMAKE_Fortran_COMPILER=ifort \
+            -DCMAKE_Fortran_FLAGS="-gnu-prefix=${CONDA_PREFIX}/bin/x86_64-conda_cos6-linux-gnu- --sysroot=${CONDA_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot"
 
     - name: Compile
       run: |
@@ -174,10 +182,10 @@ jobs:
 #        python-version: ${{ matrix.cfg.python-version }}
 #        auto-activate-base: false
 
-    - name: Environment Information
-      run: |
-        conda info
-        conda list --show-channel-urls
+#    - name: Environment Information
+#      run: |
+#        conda info
+#        conda list --show-channel-urls
 
     - name: build
       run: devtools/oneapi/build_windows.bat fortran
