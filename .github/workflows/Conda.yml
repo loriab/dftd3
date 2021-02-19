@@ -15,7 +15,7 @@ env:
   WINDOWS_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17392/w_HPCKit_p_2021.1.0.2682_offline.exe
   LINUX_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17431/l_BaseKit_p_2021.1.0.2659_offline.sh
   LINUX_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17427/l_HPCKit_p_2021.1.0.2684_offline.sh
-  WINDOWS_FORTRAN_COMPONENTS: "intel.oneapi.win.ifort-compiler:intel.oneapi.win.mkl.devel:intel.oneapi.win.mkl.python3"
+  WINDOWS_FORTRAN_COMPONENTS: "intel.oneapi.win.ifort-compiler:intel.oneapi.win.mkl.devel:intel.oneapi.win.python3"
   LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
   LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
 
@@ -149,9 +149,16 @@ jobs:
 
     - name: Smoke Test Binary
       run: |
+        eval "$(conda shell.bash hook)" && conda activate
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h
         ldd ./objdir/dftd3
+
+    - name: Package DFTD3 for Linux
+      run: |
+        eval "$(conda shell.bash hook)" && conda activate
+        conda install conda-build anaconda-client -c conda-forge
+        conda build conda/recipe -c conda-forge
 
   build_windows_fortran:
     runs-on: windows-latest
