@@ -101,6 +101,7 @@ jobs:
     - name: Environment Information
       run: |
         source /opt/intel/oneapi/setvars.sh intel64
+        which ifort
 
     - name: Environment Information
       run: |
