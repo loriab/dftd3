@@ -104,6 +104,7 @@ jobs:
 
     - name: Environment Information
       run: |
+        eval "$(conda shell.bash hook)" && conda activate
         conda info
         conda list --show-channel-urls
         conda install cmake ninja blas=*=mkl -c conda-forge
@@ -112,10 +113,13 @@ jobs:
 
     - name: Configure with CMake (Intel + MKL)
       run: |
+        eval "$(conda shell.bash hook)" && conda activate
         cmake -H. -Bobjdir -GNinja -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort
 
     - name: Compile
-      run: cmake --build objdir --verbose
+      run: |
+        eval "$(conda shell.bash hook)" && conda activate
+        cmake --build objdir --verbose
 
     - name: Smoke Test Binary
       run: |
