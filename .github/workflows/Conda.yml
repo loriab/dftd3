@@ -222,10 +222,10 @@ jobs:
 
   build_windows_fortran_2:
     runs-on: windows-latest
-    name: Windows Intel
+    name: Windows Intel Conda
     defaults:
       run:
-        shell: bash
+        shell: bash -l {0}
 
     steps:
     - uses: actions/checkout@v2
