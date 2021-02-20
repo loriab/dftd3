@@ -164,61 +164,60 @@ jobs:
         conda build conda/recipe -c defaults --output-folder .
         anaconda upload --label ci linux-64/*.tar.bz2
 
-# conda config --set anaconda_upload yes
 
-  build_windows_fortran:
-    runs-on: windows-latest
-    name: Windows Intel
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: cache install
-      id: cache-install
-      uses: actions/cache@v2
-      with:
-        path: C:\Program Files (x86)\Intel\oneAPI\compiler
-        key: install-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/devtools/oneapi/cache_exclude_windows.sh') }}
-
-    - name: install
-      if: steps.cache-install.outputs.cache-hit != 'true'
-      run: devtools/oneapi/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
-
-#    - name: Create Environment
-#      uses: conda-incubator/setup-miniconda@v2
+#  build_windows_fortran:
+#    runs-on: windows-latest
+#    name: Windows Intel
+#    defaults:
+#      run:
+#        shell: bash
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#
+#    - name: cache install
+#      id: cache-install
+#      uses: actions/cache@v2
 #      with:
-#        activate-environment: test
-#        environment-file: devtools/conda-envs/base-cf.yaml
-#        python-version: ${{ matrix.cfg.python-version }}
-#        auto-activate-base: false
-
-#    - name: Environment Information
-#      run: |
-#        conda info
-#        conda list --show-channel-urls
-
-    - name: build
-      run: devtools/oneapi/build_windows.bat fortran
-
-    - name: exclude unused files from cache
-      if: steps.cache-install.outputs.cache-hit != 'true'
-      shell: bash
-      run: devtools/oneapi/cache_exclude_windows.sh
-
-    # Delete the following if you don't want to save install logs
-    - name: Saving install logs
-      if: steps.cache-install.outputs.cache-hit != 'true'
-      uses: actions/upload-artifact@v2
-      with:
-        name: InstallLogs_${{ github.job }}
-        path: |
-          extract.log
-          bootstrapper*
-          installer*
-        retention-days: 7
+#        path: C:\Program Files (x86)\Intel\oneAPI\compiler
+#        key: install-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/devtools/oneapi/cache_exclude_windows.sh') }}
+#
+#    - name: install
+#      if: steps.cache-install.outputs.cache-hit != 'true'
+#      run: devtools/oneapi/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
+#
+##    - name: Create Environment
+##      uses: conda-incubator/setup-miniconda@v2
+##      with:
+##        activate-environment: test
+##        environment-file: devtools/conda-envs/base-cf.yaml
+##        python-version: ${{ matrix.cfg.python-version }}
+##        auto-activate-base: false
+#
+##    - name: Environment Information
+##      run: |
+##        conda info
+##        conda list --show-channel-urls
+#
+#    - name: build
+#      run: devtools/oneapi/build_windows.bat fortran
+#
+#    - name: exclude unused files from cache
+#      if: steps.cache-install.outputs.cache-hit != 'true'
+#      shell: bash
+#      run: devtools/oneapi/cache_exclude_windows.sh
+#
+#    # Delete the following if you don't want to save install logs
+#    - name: Saving install logs
+#      if: steps.cache-install.outputs.cache-hit != 'true'
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: InstallLogs_${{ github.job }}
+#        path: |
+#          extract.log
+#          bootstrapper*
+#          installer*
+#        retention-days: 7
 
   build_windows_fortran_2:
     runs-on: windows-latest
@@ -242,5 +241,29 @@ jobs:
       run: |
         conda info
         conda list --show-channel-urls
+        which conda python cmake ninja ifort
 
+    - name: Configure with CMake (Intel + MKL)
+      run: |
+        #eval "$(conda shell.bash hook)" && conda activate
+        #source /opt/intel/oneapi/setvars.sh intel64
+        which conda python cmake ninja ifort
+        cmake \
+            -S. \
+            -Bobjdir \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINTEL=ON \
+            -DBLAS=MKL \
+            -DCMAKE_Fortran_COMPILER=ifort
+            #-DCMAKE_Fortran_FLAGS="-gnu-prefix=${CONDA_PREFIX}/bin/x86_64-conda_cos6-linux-gnu- --sysroot=${CONDA_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot"
+
+    - name: Compile
+      run: |
+        cmake --build objdir --verbose
+
+    - name: Smoke Test Binary
+      run: |
+        ./objdir/dftd3 -version
+        ./objdir/dftd3 -h
 
