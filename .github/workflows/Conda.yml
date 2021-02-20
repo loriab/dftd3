@@ -217,8 +217,9 @@ jobs:
       run: |
         conda info
         conda list --show-channel-urls
-        which conda python cmake ninja 
-#ifort
+
+    #        which conda python cmake ninja 
+    #ifort
 
     - name: build
       run: devtools/oneapi/build_windows.bat fortran
