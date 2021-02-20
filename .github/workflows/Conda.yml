@@ -167,7 +167,7 @@ jobs:
         eval "$(conda shell.bash hook)" && conda activate
         conda install conda-build anaconda-client -c defaults
         conda build conda/recipe -c defaults --output-folder .
-        anaconda upload --label ci linux-64/*.tar.bz2 || return 0
+        anaconda upload --label ci --skip linux-64/*.tar.bz2
 
 ###  333333333  ###
 
@@ -217,7 +217,8 @@ jobs:
       run: |
         conda info
         conda list --show-channel-urls
-        which conda python cmake ninja ifort
+        which conda python cmake ninja 
+#ifort
 
     - name: build
       run: devtools/oneapi/build_windows.bat fortran
