@@ -227,6 +227,9 @@ jobs:
       run:
         shell: bash
 
+    steps:
+    - uses: actions/checkout@v2
+
     - name: Create Environment
       uses: conda-incubator/setup-miniconda@v2
       with:
