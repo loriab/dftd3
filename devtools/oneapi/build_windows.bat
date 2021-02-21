@@ -39,7 +39,7 @@ goto exit
 
 :fortran
 which ifort
-which conda python cmake ninja
+which python cmake ninja
 cmake -GNinja -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort
 set RESULT=%ERRORLEVEL%
 cmake --build objdir --verbose
