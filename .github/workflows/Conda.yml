@@ -214,8 +214,8 @@ jobs:
         LATEST_VERSION=2021.1.1
         echo $LATEST_VERSION
         #source "/Program Files (x86)/Intel/oneAPI/compiler/$LATEST_VERSION/env/vars.bat"
-        #source "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.bat"
-        source "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.sh"
+        "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.bat"
+        #source "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.sh"
         conda install conda-build anaconda-client -c conda-forge
         conda build conda/recipe -c conda-forge -c intel --output-folder .
         anaconda upload --label ci --skip win-64/*.tar.bz2
@@ -343,10 +343,16 @@ jobs:
 
     - name: Compile
       run: |
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        which conda python cmake ninja ifort
         cmake --build objdir --verbose
 
     - name: Smoke Test Binary
       run: |
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        which conda python cmake ninja ifort
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h
         ldd ./objdir/dftd3
