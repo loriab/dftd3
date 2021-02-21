@@ -160,7 +160,7 @@ jobs:
         ./objdir/dftd3 -h
         ldd ./objdir/dftd3
 
-    - name: Package DFTD3 for Linux
+    - name: Package DFTD3 for Conda
       env:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
@@ -192,19 +192,6 @@ jobs:
       if: steps.cache-install.outputs.cache-hit != 'true'
       run: devtools/oneapi/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
 
-##    - name: Create Environment
-##      uses: conda-incubator/setup-miniconda@v2
-##      with:
-##        activate-environment: test
-##        environment-file: devtools/conda-envs/base-cf.yaml
-##        python-version: ${{ matrix.cfg.python-version }}
-##        auto-activate-base: false
-#
-##    - name: Environment Information
-##      run: |
-##        conda info
-##        conda list --show-channel-urls
-
     - name: Create Environment
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -217,9 +204,6 @@ jobs:
       run: |
         conda info
         conda list --show-channel-urls
-
-    #        which conda python cmake ninja 
-    #ifort
 
     - name: build
       run: devtools/oneapi/build_windows.bat fortran
@@ -246,6 +230,14 @@ jobs:
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h
         ldd ./objdir/dftd3
+
+    - name: Package DFTD3 for Conda
+      env:
+        ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      run: |
+        conda install conda-build anaconda-client -c defaults
+        conda build conda/recipe -c defaults --output-folder .
+        anaconda upload --label ci --skip win-64/*.tar.bz2
 
 ###  444444444  ###
 

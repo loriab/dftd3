@@ -23,11 +23,14 @@ requirements:
     build:
         - {{ compiler('fortran') }}
         - cmake >=3.3
+    run:
+        - fortran-rt                                    # [win]
 
 test:
     commands:
         # Verify executable
         - test -f $PREFIX/bin/dftd3
+        - if not exist %PREFIX%\\Library\\bin\\dftd3 exit 1  # [win]
         - $PREFIX/bin/dftd3 -h
         - $PREFIX/bin/dftd3 -version
         # Inspect linkage
