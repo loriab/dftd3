@@ -155,11 +155,11 @@ jobs:
       uses: actions/cache@v2
       with:
         path: C:\Program Files (x86)\Intel\oneAPI\compiler
-        key: install-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/devtools/oneapi/cache_exclude_windows.sh') }}
+        key: install-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/devtools/oneapi-ci/cache_exclude_windows.sh') }}
 
     - name: install
       if: steps.cache-install.outputs.cache-hit != 'true'
-      run: devtools/oneapi/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
+      run: devtools/oneapi-ci/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
 
     - name: Create Environment
       uses: conda-incubator/setup-miniconda@v2
@@ -175,12 +175,12 @@ jobs:
         conda list --show-channel-urls
 
     - name: build
-      run: devtools/oneapi/build_windows.bat fortran
+      run: devtools/oneapi-ci/build_windows.bat fortran
 
     - name: exclude unused files from cache
       if: steps.cache-install.outputs.cache-hit != 'true'
       shell: bash
-      run: devtools/oneapi/cache_exclude_windows.sh
+      run: devtools/oneapi-ci/cache_exclude_windows.sh
 
     # Delete the following if you don't want to save install logs
     - name: Saving install logs
@@ -199,6 +199,12 @@ jobs:
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h
         ldd ./objdir/dftd3
+
+    - name: source
+      run: |
+        for /f "tokens=* usebackq" %%f in (`dir /b "C:\Program Files (x86)\Intel\oneAPI\compiler\" ^| findstr /V latest ^| sort`) do @set "LATEST_VERSION=%%f"
+        echo %LATEST_VERSION%
+        @call "C:\Program Files (x86)\Intel\oneAPI\compiler\%LATEST_VERSION%\env\vars.bat"
 
     - name: Package DFTD3 for Conda
       env:
@@ -257,4 +263,38 @@ jobs:
 #      run: |
 #        ./objdir/dftd3 -version
 #        ./objdir/dftd3 -h
+
+###  555555555  ###
+
+  build_linux_apt_fortran:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: actions/checkout@v2
+    - name: setup apt repo
+      run: devtools/oneapi-ci/setup_apt_repo_linux.sh
+    - name: collect versioned dependencies of apt packages
+      run: devtools/oneapi-ci/apt_depends.sh $LINUX_FORTRAN_COMPONENTS | tee depends.txt
+    - name: cache install
+      id: cache-install
+      uses: actions/cache@v2
+      with:
+        path: |
+          /opt/intel/oneapi/compiler
+        key: install-${{ env.LINUX_FORTRAN_COMPONENTS }}-${{ hashFiles('**/depends.txt') }}-compiler-${{ hashFiles('**/devtools/oneapi-ci/cache_exclude_linux.sh') }}
+    - name: install
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: devtools/oneapi-ci/install_linux_apt.sh $LINUX_FORTRAN_COMPONENTS
+    - name: build
+      run: |
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        git clone --depth 1 https://github.com/oneapi-src/oneAPI-samples.git
+        cd oneAPI-samples/DirectProgramming/Fortran/CombinationalLogic/openmp-primes
+        make && make run && make clean && make FC=ifx && make run
+    - name: exclude unused files from cache
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: devtools/oneapi-ci/cache_exclude_linux.sh
 
