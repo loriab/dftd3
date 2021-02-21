@@ -213,7 +213,8 @@ jobs:
       run: |
         LATEST_VERSION=2021.1.1
         echo $LATEST_VERSION
-        source "/Program Files (x86)/Intel/oneAPI/compiler/$LATEST_VERSION/env/vars.bat"
+        #source "/Program Files (x86)/Intel/oneAPI/compiler/$LATEST_VERSION/env/vars.bat"
+        source "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.bat"
         conda install conda-build anaconda-client -c conda-forge
         conda build conda/recipe -c conda-forge -c intel --output-folder .
         anaconda upload --label ci --skip win-64/*.tar.bz2
@@ -275,7 +276,6 @@ jobs:
     runs-on: ubuntu-20.04
     defaults:
       run:
-        #shell: bash
         shell: bash -l {0}
     steps:
     - uses: actions/checkout@v2
@@ -303,4 +303,59 @@ jobs:
     - name: exclude unused files from cache
       if: steps.cache-install.outputs.cache-hit != 'true'
       run: devtools/oneapi-ci/cache_exclude_linux.sh
+
+########
+
+    - name: Create Environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: test
+        environment-file: devtools/conda-envs/base-defaults.yaml
+        python-version: ${{ matrix.cfg.python-version }}
+        auto-activate-base: false
+
+    - name: Environment Information
+      run: |
+        conda info
+        conda list --show-channel-urls
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        which conda python cmake ninja ifort
+
+    - name: build
+      run: devtools/oneapi-ci/build_windows.bat fortran
+
+    - name: Configure with CMake (Intel + MKL)
+      run: |
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        which conda python cmake ninja ifort
+        cmake \
+            -S. \
+            -Bobjdir \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINTEL=ON \
+            -DBLAS=MKL \
+            -DCMAKE_Fortran_COMPILER=ifort
+#            -DCMAKE_Fortran_FLAGS="-gnu-prefix=${CONDA_PREFIX}/bin/x86_64-conda_cos6-linux-gnu- --sysroot=${CONDA_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot"
+
+    - name: Compile
+      run: |
+        cmake --build objdir --verbose
+
+    - name: Smoke Test Binary
+      run: |
+        ./objdir/dftd3 -version
+        ./objdir/dftd3 -h
+        ldd ./objdir/dftd3
+
+#    - name: Package DFTD3 for Conda
+#      env:
+#        ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+#      run: |
+#        eval "$(conda shell.bash hook)" && conda activate
+#        conda install conda-build anaconda-client -c defaults
+#        conda build conda/recipe -c defaults --output-folder .
+#        anaconda upload --label ci --skip linux-64/*.tar.bz2
 
