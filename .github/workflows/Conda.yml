@@ -213,11 +213,12 @@ jobs:
       run: |
         LATEST_VERSION=2021.1.1
         echo $LATEST_VERSION
-        source "C:\Program Files (x86)\Intel\oneAPI\compiler\$LATEST_VERSION\env\vars.bat"
+        source "/Program Files (x86)/Intel/oneAPI/compiler/$LATEST_VERSION/env/vars.bat"
         conda install conda-build anaconda-client -c conda-forge
         conda build conda/recipe -c conda-forge -c intel --output-folder .
         anaconda upload --label ci --skip win-64/*.tar.bz2
 
+        #source "C:\Program Files (x86)\Intel\oneAPI\compiler\$LATEST_VERSION\env\vars.bat"
 ###  444444444  ###
 
 #  build_windows_fortran_2:
@@ -274,7 +275,8 @@ jobs:
     runs-on: ubuntu-20.04
     defaults:
       run:
-        shell: bash
+        #shell: bash
+        shell: bash -l {0}
     steps:
     - uses: actions/checkout@v2
     - name: setup apt repo
