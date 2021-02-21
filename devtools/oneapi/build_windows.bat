@@ -15,7 +15,7 @@ IF "%VS_VER%"=="2019_build_tools" (
 for /f "tokens=* usebackq" %%f in (`dir /b "C:\Program Files (x86)\Intel\oneAPI\compiler\" ^| findstr /V latest ^| sort`) do @set "LATEST_VERSION=%%f"
 @call "C:\Program Files (x86)\Intel\oneAPI\compiler\%LATEST_VERSION%\env\vars.bat"
 
-git clone --depth 1 https://github.com/oneapi-src/oneAPI-samples.git
+REM git clone --depth 1 https://github.com/oneapi-src/oneAPI-samples.git
 
 if "%LANGUAGE%" == "c++" goto cpp
 if "%LANGUAGE%" == "fortran" goto fortran
