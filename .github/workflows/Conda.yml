@@ -214,7 +214,8 @@ jobs:
         LATEST_VERSION=2021.1.1
         echo $LATEST_VERSION
         #source "/Program Files (x86)/Intel/oneAPI/compiler/$LATEST_VERSION/env/vars.bat"
-        source "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.bat"
+        #source "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.bat"
+        source "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.sh"
         conda install conda-build anaconda-client -c conda-forge
         conda build conda/recipe -c conda-forge -c intel --output-folder .
         anaconda upload --label ci --skip win-64/*.tar.bz2
@@ -322,8 +323,8 @@ jobs:
         source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
         which conda python cmake ninja ifort
 
-    - name: build
-      run: devtools/oneapi-ci/build_windows.bat fortran
+#    - name: build
+#      run: devtools/oneapi-ci/build_windows.bat fortran
 
     - name: Configure with CMake (Intel + MKL)
       run: |
