@@ -29,18 +29,18 @@ requirements:
     run:
         - fortran_rt                                     # [win]
 
-test:
-    commands:
-        # Verify executable
-        - test -f $PREFIX/bin/dftd3                      # [not win]
-        - if not exist %PREFIX%\\Library\\bin\\dftd3.exe exit 1  # [win]
-        - dftd3 -h
-        - dftd3 -version
-        # Inspect linkage
-        - ldd -r -u $PREFIX/bin/dftd3                    # [linux]
-        - otool -L $PREFIX/bin/dftd3                     # [osx]
-        - conda inspect linkages --show-files --groupby=dependency dftd3  # [unix]
-        - conda inspect objects -p $PREFIX $PKG_NAME     # [osx]
+#test:
+#    commands:
+#        # Verify executable
+#        - test -f $PREFIX/bin/dftd3                      # [not win]
+#        - if not exist %PREFIX%\\Library\\bin\\dftd3.exe exit 1  # [win]
+#        - dftd3 -h
+#        - dftd3 -version
+#        # Inspect linkage
+#        - ldd -r -u $PREFIX/bin/dftd3                    # [linux]
+#        - otool -L $PREFIX/bin/dftd3                     # [osx]
+#        - conda inspect linkages --show-files --groupby=dependency dftd3  # [unix]
+#        - conda inspect objects -p $PREFIX $PKG_NAME     # [osx]
 
 about:
     home: http://www.thch.uni-bonn.de/tc/index.php?section=downloads&subsection=DFT-D3&lang=english
