@@ -364,6 +364,8 @@ jobs:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
         which conda python
+        conda install conda-build --yes
+        which conda-build
         conda build conda/recipe -c defaults --output-folder .
         anaconda upload --label ci --skip linux-64/*.tar.bz2
 
