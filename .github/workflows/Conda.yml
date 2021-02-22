@@ -223,7 +223,7 @@ jobs:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
         conda install conda-build anaconda-client
-        conda build conda/recipe -c defaults -c intel --output-folder .
+        conda build conda/recipe -c defaults -c intel --output-folder . --debug
         anaconda upload --label ci win-64/*.tar.bz2
 
         #anaconda upload --label ci --skip win-64/*.tar.bz2
@@ -364,7 +364,9 @@ jobs:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
         which conda python
-        conda install conda-build --yes -vvv
+        conda deactivate
+        conda create -n cb conda-build anaconda-client --yes -vv
+        conda activate cb
         which conda-build
         conda build conda/recipe -c defaults --output-folder .
         anaconda upload --label ci --skip linux-64/*.tar.bz2
