@@ -216,8 +216,9 @@ jobs:
         "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.bat"
         conda install conda-build anaconda-client -c conda-forge
         conda build conda/recipe -c conda-forge -c intel --output-folder .
-        anaconda upload --label ci --skip win-64/*.tar.bz2
+        anaconda upload --label ci win-64/*.tar.bz2
 
+        #anaconda upload --label ci --skip win-64/*.tar.bz2
         #source "C:\Program Files (x86)\Intel\oneAPI\compiler\$LATEST_VERSION\env\vars.bat"
 ###  444444444  ###
 
@@ -357,9 +358,10 @@ jobs:
         LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
         source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
         ls -l conda/recipe
-        conda install conda-build anaconda-client
-        ls -l conda/recipe
         which ifort conda-build
         conda build conda/recipe -c defaults --output-folder .
         anaconda upload --label ci --skip linux-64/*.tar.bz2
+
+#        conda install conda-build anaconda-client
+#        ls -l conda/recipe
 

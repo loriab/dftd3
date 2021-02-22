@@ -1,5 +1,4 @@
-#{% set version = "3.2.1" %}
-{% set version = "0.1.0" %}
+{% set version = "3.2.1" %}
 
 package:
     name: dftd3
