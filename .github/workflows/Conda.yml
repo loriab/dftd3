@@ -223,11 +223,12 @@ jobs:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
         conda install conda-build anaconda-client
-        conda config --set anaconda_upload yes
         conda build conda/recipe -c defaults -c intel --output-folder . --debug
-        #anaconda upload --label ci win-64/*.tar.bz2
+        anaconda upload --label ci --skip win-64/*.tar.bz2
 
+        #anaconda upload --label ci win-64/*.tar.bz2
         #anaconda upload --label ci --skip win-64/*.tar.bz2
+        #conda config --set anaconda_upload yes
         #source "C:\Program Files (x86)\Intel\oneAPI\compiler\$LATEST_VERSION\env\vars.bat"
 ###  444444444  ###
 
@@ -319,7 +320,8 @@ jobs:
         activate-environment: test
         environment-file: devtools/conda-envs/base-defaults.yaml
         python-version: ${{ matrix.cfg.python-version }}
-        auto-activate-base: false
+        auto-activate-base: true
+#        auto-activate-base: false
 
     - name: Environment Information
       run: |
