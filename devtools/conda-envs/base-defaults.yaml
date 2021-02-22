@@ -13,4 +13,4 @@ dependencies:
   - gcc_linux-64  # for sysroot
 
   - conda-build
-  - anaconda-login
+  - anaconda-client
