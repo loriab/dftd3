@@ -20,7 +20,9 @@ build:
 
 requirements:
     build:
-        - {{ compiler('fortran') }}                      # [not win]
+        #- {{ compiler('fortran') }}                      # [not win]
+        - {{ compiler('fortran') }}
+        - fortran_rt                                     # [win]
         - cmake >=3.3
         - ninja
     run:
