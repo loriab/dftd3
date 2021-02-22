@@ -223,8 +223,9 @@ jobs:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
         conda install conda-build anaconda-client
+        conda config --set anaconda_upload yes
         conda build conda/recipe -c defaults -c intel --output-folder . --debug
-        anaconda upload --label ci win-64/*.tar.bz2
+        #anaconda upload --label ci win-64/*.tar.bz2
 
         #anaconda upload --label ci --skip win-64/*.tar.bz2
         #source "C:\Program Files (x86)\Intel\oneAPI\compiler\$LATEST_VERSION\env\vars.bat"
@@ -364,6 +365,8 @@ jobs:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
         which conda python
+        conda info
+        conda list --show-channel-urls
         conda deactivate
         conda create -n cb conda-build anaconda-client --yes -vv
         conda activate cb
