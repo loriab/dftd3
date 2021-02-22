@@ -331,7 +331,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DINTEL=ON \
             -DBLAS=MKL \
-            -DCMAKE_Fortran_COMPILER=ifort
+            -DCMAKE_Fortran_COMPILER=ifort \
             -DCMAKE_Fortran_FLAGS="-gnu-prefix=${CONDA_PREFIX}/bin/x86_64-conda_cos6-linux-gnu- --sysroot=${CONDA_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot"
 
     - name: Compile

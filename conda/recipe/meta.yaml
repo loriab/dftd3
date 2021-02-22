@@ -30,7 +30,7 @@ requirements:
 test:
     commands:
         # Verify executable
-        - test -f $PREFIX/bin/dftd3
+        - test -f $PREFIX/bin/dftd3                      # [not win]
         - if not exist %PREFIX%\\Library\\bin\\dftd3.exe exit 1  # [win]
         - dftd3 -h
         - dftd3 -version
