@@ -355,13 +355,17 @@ jobs:
       env:
         ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
       run: |
-        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
-        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
-        conda install conda-build anaconda-client
-        ls -l conda/recipe
-        which ifort conda-build
+        which conda python
+        conda install conda-build anaconda-client -c defaults
         conda build conda/recipe -c defaults --output-folder .
         anaconda upload --label ci --skip linux-64/*.tar.bz2
 
 #        ls -l conda/recipe
+        #LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        #source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        #conda install conda-build anaconda-client
+        #ls -l conda/recipe
+        #which ifort conda-build
+        #conda build conda/recipe -c defaults --output-folder .
+        #anaconda upload --label ci --skip linux-64/*.tar.bz2
 
