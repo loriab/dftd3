@@ -31,9 +31,9 @@ test:
     commands:
         # Verify executable
         - test -f $PREFIX/bin/dftd3
-        - if not exist %PREFIX%\\Library\\bin\\dftd3 exit 1  # [win]
-        - $PREFIX/bin/dftd3 -h
-        - $PREFIX/bin/dftd3 -version
+        - if not exist %PREFIX%\\Library\\bin\\dftd3.exe exit 1  # [win]
+        - dftd3 -h
+        - dftd3 -version
         # Inspect linkage
         - ldd -r -u $PREFIX/bin/dftd3                    # [linux]
         - otool -L $PREFIX/bin/dftd3                     # [osx]
