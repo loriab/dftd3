@@ -136,8 +136,7 @@ jobs:
         eval "$(conda shell.bash hook)" && conda activate
         conda install conda-build anaconda-client -c defaults
         conda build conda/recipe -c defaults --output-folder .
-
-#anaconda upload --label ci --skip linux-64/*.tar.bz2
+        anaconda upload --label ci --skip linux-64/*.tar.bz2
 
 ###  333333333  ###
 
@@ -226,6 +225,15 @@ jobs:
         conda install conda-build anaconda-client
         conda config --set anaconda_upload yes
         conda build conda/recipe -c defaults -c intel --output-folder . --debug
+
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: win-conda-package
+        path: |
+          win-64/*.tar.bz2
+
+
 
 #anaconda upload --label ci --skip win-64/*.tar.bz2
 
