@@ -345,7 +345,7 @@ jobs:
 #        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
     - name: Smoke Test Binary
       run: |
-        which conda python cmake ninja ifort
+        which conda python cmake ninja
         ./objdir/dftd3 -version
         ./objdir/dftd3 -h
         ldd ./objdir/dftd3
