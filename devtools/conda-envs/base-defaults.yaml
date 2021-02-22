@@ -11,3 +11,6 @@ dependencies:
   - intel::fortran_rt
   - intel::mkl-devel
   - gcc_linux-64  # for sysroot
+
+  - conda-build
+  - anaconda-login
