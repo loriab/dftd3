@@ -1,0 +1,399 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Conda
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  WINDOWS_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17453/w_BaseKit_p_2021.1.0.2664_offline.exe
+  WINDOWS_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17392/w_HPCKit_p_2021.1.0.2682_offline.exe
+  LINUX_BASEKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17431/l_BaseKit_p_2021.1.0.2659_offline.sh
+  LINUX_HPCKIT_URL: https://registrationcenter-download.intel.com/akdlm/irc_nas/17427/l_HPCKit_p_2021.1.0.2684_offline.sh
+  WINDOWS_FORTRAN_COMPONENTS: intel.oneapi.win.ifort-compiler
+  LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
+  LINUX_FORTRAN_COMPONENTS_WEB: intel.oneapi.lin.ifort-compiler
+
+jobs:
+
+###  111111111  ###
+
+  build_linux_gcc:
+    runs-on: ubuntu-20.04
+    name: Linux GCC 10
+    strategy:
+      fail-fast: false
+    env:
+      FC: gfortran-10
+      GCC_V: 10
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Ubuntu Build Env
+      run: |
+        sudo apt-get install -y ca-certificates gnupg man-db pkg-config wget
+        sudo apt-get install apt-transport-https software-properties-common
+        wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+        sudo apt-get -qqq update
+        sudo apt-get install -y build-essential cmake
+
+    - name: Install GFortran and openblas
+      run: |
+       sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+       sudo apt-get update
+       sudo apt-get install -y gcc-${GCC_V} gfortran-${GCC_V} libopenblas-dev
+       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_V} 100 \
+       --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-${GCC_V} \
+       --slave /usr/bingcov gcov /usr/bin/gcov-${GCC_V}
+
+    - name: Configure with CMake (GCC + OpenBlas)
+      run: |
+        cmake -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DGNU=ON -DBLAS=OpenBLAS
+
+    - name: Compile
+      run: cmake --build objdir --verbose
+
+    - name: Smoke Test Binary
+      run: |
+        ./objdir/dftd3 -version
+        ./objdir/dftd3 -h
+        ldd ./objdir/dftd3
+
+###  222222222  ###
+
+  build_linux_intel:
+    runs-on: ubuntu-20.04
+    name: Linux Intel
+    strategy:
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash -l {0}
+    env:
+      FC: gfortran-10
+      GCC_V: 10
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Intel OneAPI Linux
+      run: |
+        sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+        sudo add-apt-repository "deb https://apt.repos.intel.com/oneapi all main"
+        sudo apt-get -qqq update
+        sudo apt-get install -y  intel-oneapi-compiler-fortran intel-oneapi-mkl intel-oneapi-mkl-devel intel-oneapi-runtime-libs
+
+    - name: Environment Information
+      run: |
+        eval "$(conda shell.bash hook)" && conda activate
+        conda info
+        conda list --show-channel-urls
+        conda install cmake ninja blas=*=mkl gcc_linux-64 -c defaults
+        conda list --show-channel-urls
+        source /opt/intel/oneapi/setvars.sh intel64
+        which ifort
+        which conda python cmake ninja ifort
+
+    - name: Configure with CMake (Intel + MKL)
+      run: |
+        eval "$(conda shell.bash hook)" && conda activate
+        source /opt/intel/oneapi/setvars.sh intel64
+        which conda python cmake ninja ifort
+        cmake \
+            -S. \
+            -Bobjdir \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINTEL=ON \
+            -DBLAS=MKL \
+            -DCMAKE_Fortran_COMPILER=ifort \
+            -DCMAKE_Fortran_FLAGS="-gnu-prefix=${CONDA_PREFIX}/bin/x86_64-conda_cos6-linux-gnu- --sysroot=${CONDA_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot"
+
+    - name: Compile
+      run: |
+        eval "$(conda shell.bash hook)" && conda activate
+        cmake --build objdir --verbose
+
+    - name: Smoke Test Binary
+      run: |
+        eval "$(conda shell.bash hook)" && conda activate
+        source /opt/intel/oneapi/setvars.sh intel64
+        ./objdir/dftd3 -version
+        ./objdir/dftd3 -h
+        ldd ./objdir/dftd3
+
+    - name: Package DFTD3 for Conda
+      env:
+        ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      run: |
+        eval "$(conda shell.bash hook)" && conda activate
+        conda install conda-build anaconda-client -c defaults
+        conda build conda/recipe -c defaults --output-folder .
+        anaconda upload --label ci --skip linux-64/*.tar.bz2
+
+###  333333333  ###
+
+  build_windows_fortran:
+    runs-on: windows-latest
+    name: Windows Intel
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: cache install
+      id: cache-install
+      uses: actions/cache@v2
+      with:
+        path: C:\Program Files (x86)\Intel\oneAPI\compiler
+        key: install-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/devtools/oneapi-ci/cache_exclude_windows.sh') }}
+
+    - name: install
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: devtools/oneapi-ci/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
+
+    - name: Create Environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: test
+        environment-file: devtools/conda-envs/base-cf.yaml
+        python-version: ${{ matrix.cfg.python-version }}
+        auto-activate-base: false
+
+    - name: Environment Information
+      run: |
+        conda info
+        conda list --show-channel-urls
+
+    - name: build
+      run: devtools/oneapi-ci/build_windows.bat fortran
+
+    - name: exclude unused files from cache
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      shell: bash
+      run: devtools/oneapi-ci/cache_exclude_windows.sh
+
+    # Delete the following if you don't want to save install logs
+    - name: Saving install logs
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      uses: actions/upload-artifact@v2
+      with:
+        name: InstallLogs_${{ github.job }}
+        path: |
+          extract.log
+          bootstrapper*
+          installer*
+        retention-days: 7
+
+    - name: Smoke Test Binary
+      run: |
+        ./objdir/dftd3 -version
+        ./objdir/dftd3 -h
+        ldd ./objdir/dftd3
+
+    - name: source
+      shell: cmd
+      run: |
+        for /f "tokens=* usebackq" %%f in (`dir /b "C:\Program Files (x86)\Intel\oneAPI\compiler\" ^| findstr /V latest ^| sort`) do @set "LATEST_VERSION=%%f"
+        echo %LATEST_VERSION%
+        @call "C:\Program Files (x86)\Intel\oneAPI\compiler\%LATEST_VERSION%\env\vars.bat"
+
+#    - name: Package DFTD3 for Conda
+#      env:
+#        ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+#      run: |
+#        LATEST_VERSION=2021.1.1
+#        echo $LATEST_VERSION
+#        "C:\Program Files (x86)\Intel\oneAPI\compiler\\$LATEST_VERSION\env\vars.bat"
+#        conda install conda-build anaconda-client -c conda-forge
+#        conda build conda/recipe -c conda-forge -c intel --output-folder .
+#        anaconda upload --label ci win-64/*.tar.bz2
+
+    - name: Package DFTD3 for Conda
+      env:
+        ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      run: |
+        conda install conda-build anaconda-client
+        conda config --set anaconda_upload yes
+        conda build conda/recipe -c defaults -c intel --output-folder . --debug
+
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: win-conda-package
+        path: |
+          win-64/*.tar.bz2
+
+
+
+#anaconda upload --label ci --skip win-64/*.tar.bz2
+
+#anaconda upload --label ci win-64/*.tar.bz2
+#anaconda upload --label ci --skip win-64/*.tar.bz2
+#source "C:\Program Files (x86)\Intel\oneAPI\compiler\$LATEST_VERSION\env\vars.bat"
+###  444444444  ###
+
+#  build_windows_fortran_2:
+#    runs-on: windows-latest
+#    name: Windows Intel Conda
+#    defaults:
+#      run:
+#        shell: bash -l {0}
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#
+#    - name: Create Environment
+#      uses: conda-incubator/setup-miniconda@v2
+#      with:
+#        activate-environment: test
+#        environment-file: devtools/conda-envs/base-cf.yaml
+#        python-version: ${{ matrix.cfg.python-version }}
+#        auto-activate-base: false
+#
+#    - name: Environment Information
+#      run: |
+#        conda info
+#        conda list --show-channel-urls
+#        which conda python cmake ninja ifort
+#
+#    - name: Configure with CMake (Intel + MKL)
+#      run: |
+#        #eval "$(conda shell.bash hook)" && conda activate
+#        #source /opt/intel/oneapi/setvars.sh intel64
+#        which conda python cmake ninja ifort
+#        cmake \
+#            -S. \
+#            -Bobjdir \
+#            -GNinja \
+#            -DCMAKE_BUILD_TYPE=Release \
+#            -DINTEL=ON \
+#            -DBLAS=MKL \
+#            -DCMAKE_Fortran_COMPILER=ifort
+#            #-DCMAKE_Fortran_FLAGS="-gnu-prefix=${CONDA_PREFIX}/bin/x86_64-conda_cos6-linux-gnu- --sysroot=${CONDA_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot"
+#
+#    - name: Compile
+#      run: |
+#        cmake --build objdir --verbose
+#
+#    - name: Smoke Test Binary
+#      run: |
+#        ./objdir/dftd3 -version
+#        ./objdir/dftd3 -h
+
+###  555555555  ###
+
+  build_linux_apt_fortran:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+    - uses: actions/checkout@v2
+    - name: setup apt repo
+      run: devtools/oneapi-ci/setup_apt_repo_linux.sh
+    - name: collect versioned dependencies of apt packages
+      run: devtools/oneapi-ci/apt_depends.sh $LINUX_FORTRAN_COMPONENTS | tee depends.txt
+    - name: cache install
+      id: cache-install
+      uses: actions/cache@v2
+      with:
+        path: |
+          /opt/intel/oneapi/compiler
+        key: install-${{ env.LINUX_FORTRAN_COMPONENTS }}-${{ hashFiles('**/depends.txt') }}-compiler-${{ hashFiles('**/devtools/oneapi-ci/cache_exclude_linux.sh') }}
+    - name: install
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: devtools/oneapi-ci/install_linux_apt.sh $LINUX_FORTRAN_COMPONENTS
+    - name: build
+      run: |
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        git clone --depth 1 https://github.com/oneapi-src/oneAPI-samples.git
+        cd oneAPI-samples/DirectProgramming/Fortran/CombinationalLogic/openmp-primes
+        make && make run && make clean && make FC=ifx && make run
+    - name: exclude unused files from cache
+      if: steps.cache-install.outputs.cache-hit != 'true'
+      run: devtools/oneapi-ci/cache_exclude_linux.sh
+
+    - name: Create Environment
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: test
+        environment-file: devtools/conda-envs/base-defaults.yaml
+        python-version: ${{ matrix.cfg.python-version }}
+        auto-activate-base: true
+#        auto-activate-base: false
+
+    - name: Environment Information
+      run: |
+        conda info
+        conda list --show-channel-urls
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        which conda python cmake ninja ifort
+
+    - name: Configure with CMake (Intel + MKL)
+      run: |
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        which conda python cmake ninja ifort
+        cmake \
+            -S. \
+            -Bobjdir \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINTEL=ON \
+            -DBLAS=MKL \
+            -DCMAKE_Fortran_COMPILER=ifort \
+            -DCMAKE_Fortran_FLAGS="-gnu-prefix=${CONDA_PREFIX}/bin/x86_64-conda_cos6-linux-gnu- --sysroot=${CONDA_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot"
+
+    - name: Compile
+      run: |
+        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        which conda python cmake ninja ifort
+        cmake --build objdir --verbose
+
+#        LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+#        source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+    - name: Smoke Test Binary
+      run: |
+        which conda python cmake ninja
+        ./objdir/dftd3 -version
+        ./objdir/dftd3 -h
+        ldd ./objdir/dftd3
+
+    - name: Package DFTD3 for Conda
+      env:
+        ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      run: |
+        which conda python
+        conda info
+        conda list --show-channel-urls
+        which conda-build
+        conda build conda/recipe -c defaults --output-folder .
+        anaconda upload --label ci --skip linux-64/*.tar.bz2
+
+        #conda install conda-build anaconda-client -c defaults
+        #conda deactivate
+        #conda create -n cb conda-build anaconda-client --yes -vv
+        #conda activate cb
+
+#        ls -l conda/recipe
+        #LATEST_VERSION=$(ls -1 /opt/intel/oneapi/compiler/ | grep -v latest | sort | tail -1)
+        #source /opt/intel/oneapi/compiler/"$LATEST_VERSION"/env/vars.sh
+        #conda install conda-build anaconda-client
+        #ls -l conda/recipe
+        #which ifort conda-build
+        #conda build conda/recipe -c defaults --output-folder .
+        #anaconda upload --label ci --skip linux-64/*.tar.bz2
+

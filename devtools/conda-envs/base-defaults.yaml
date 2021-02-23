@@ -1,0 +1,16 @@
+name: test
+channels:
+  - defaults
+dependencies:
+  - blas=*=mkl  # not needed but an example of disuading solver from openblas and old psi
+  - intel-openmp!=2019.5
+
+    # Core
+  - cmake
+  - ninja
+  - intel::fortran_rt
+  - intel::mkl-devel
+  - gcc_linux-64  # for sysroot
+
+  - conda-build
+  - anaconda-client
