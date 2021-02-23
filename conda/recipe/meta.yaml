@@ -8,7 +8,7 @@ source:
     path: ../..
 
 build:
-    number: 0
+    number: 1
 #    number: 2                                            # [linux]
 #    number: 1                                            # [osx]
 #    number: 0                                            # [win]
@@ -26,8 +26,8 @@ requirements:
         - fortran_rt                                     # [win]
         - cmake >=3.3
         - ninja
-    run:
-        - fortran_rt                                     # [win]
+    #run:
+    #    - fortran_rt                                     # [win]
 
 #test:
 #    commands:

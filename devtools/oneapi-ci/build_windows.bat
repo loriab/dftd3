@@ -40,7 +40,7 @@ goto exit
 :fortran
 which ifort
 which python cmake ninja
-cmake -GNinja -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort
+cmake -GNinja -H. -Bobjdir -DCMAKE_BUILD_TYPE=Release -DINTEL=ON -DBLAS=MKL -DCMAKE_Fortran_COMPILER=ifort -DCMAKE_Fortran_FLAGS="/static"
 set RESULT=%ERRORLEVEL%
 cmake --build objdir --verbose
 set RESULT=%ERRORLEVEL%
